@@ -1,0 +1,6 @@
+model,roc_auc,roc_auc_std,accuracy,recall_not_repaid,brier_score
+Baseline (always 'repaid'),0.5,0.0,0.7988,0.0,0.2012
+Company baseline: lender's grade only,0.6549,0.0018,0.796,0.0179,0.154
+Classic scorecard: credit score + DTI,0.7678,0.0018,0.8099,0.1931,0.1353
+Logistic regression,0.9081,0.0008,0.9,0.5979,0.0769
+LightGBM,0.9215,0.0007,0.9057,0.6088,0.0717

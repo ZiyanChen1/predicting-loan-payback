@@ -1,0 +1,10 @@
+share_kept,ranked_by,default_rate_%,defaulted_principal_$M,share_of_all_defaults_kept_%
+70%,Lender's grade,15.1,188.6,52.6
+70%,Classic scorecard,11.1,141.3,38.8
+70%,LightGBM,4.7,59.9,16.5
+80%,Lender's grade,17.0,242.0,67.4
+80%,Classic scorecard,13.3,190.6,52.7
+80%,LightGBM,6.8,97.1,26.8
+90%,Lender's grade,18.3,294.4,81.9
+90%,Classic scorecard,16.1,259.8,72.2
+90%,LightGBM,11.5,185.2,51.5

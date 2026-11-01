@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Kaggle competition data may not be redistributed (competition rules)
+data/*.csv
+data/*.zip
