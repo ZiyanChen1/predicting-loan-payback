@@ -1,98 +1,125 @@
 # Predicting Loan Payback
 
-MSBA 265 Final Project · Ziyan Chen
+**Can machine learning rank approved borrowers by default risk better than the lender's own grade, by enough to matter, while staying explainable?**
+
+Ziyan Chen · MSBA 265 Applied Analytics, University of the Pacific · Final project
 Data: Kaggle Playground Series S5E11, [Predicting Loan Payback](https://www.kaggle.com/competitions/playground-series-s5e11)
 
-## Project question
-Lenders already rank borrowers with their own risk grade. This project asks:
+---
 
-> **Can machine learning rank approved borrowers by default risk better than the lender's own grade, by enough to matter, while staying explainable?**
+## Why this project
+Lenders already score borrowers. In this data, every loan carries the lender's own risk grade (A1 to F5), yet about 1 in 5 approved loans was not repaid. This project treats the lender's grade as the **current model (champion)** and tests whether machine learning is a better **challenger**. It measures the answer in dollars, not only in accuracy.
 
-- **Stakeholder:** a lender's credit risk team.
-- **How the result is used:** to group similar future applicants into low, medium, and high risk tiers, and to explain the main drivers of each borrower's default risk.
-- **Success measures:**
-  1. Cross-validated ROC AUC above the lender's grade (0.655) and a classic credit score + DTI scorecard (0.768).
-  2. Less defaulted principal than the lender's grade when only the safest share of loans is kept.
-  3. Borrower-level risk drivers that a loan officer can read.
+| | |
+|---|---|
+| **Stakeholder** | A consumer lender's credit risk team: the credit risk manager and the loan officers who review borderline files |
+| **Decision supported** | Group similar future applicants into low / medium / high risk tiers (approve quickly / officer review / decline) and show what drives each borrower's risk |
+| **Method** | Supervised binary classification: logistic regression and LightGBM, compared with three baselines |
+| **Success measures** | ROC AUC above the lender's grade and a classic scorecard; less defaulted principal at the same share of loans kept; readable borrower-level risk drivers |
 
-## Current status (P1)
-| Stage | File | Status |
-|---|---|---|
-| Data quality audit and cleaning | `src/eda_audit.py`, `01_eda.ipynb` | Done |
-| Baseline and first models | `02_modeling.ipynb` | Done (proof of concept) |
-| Risk drivers, risk tiers, sensitivity | `02_modeling.ipynb` Steps 7c–7d | First version done |
-| Tuning, saved model, fairness check | — | Next (P2) |
+## Key results (preliminary)
+Mean of stratified 5-fold cross-validation on the training data:
 
-P1 proposal (topic examples, infographic, proposal, EDA, baseline): `docs/P1_Proposal_Ziyan_Chen.pdf`
+| Model | ROC AUC | Recall on loans not repaid | Brier score |
+|---|---|---|---|
+| Baseline: always predict "repaid" | 0.500 | 0.0% | 0.201 |
+| Lender's grade only (company baseline) | 0.655 | 1.8% | 0.154 |
+| Classic scorecard: credit score + DTI | 0.768 | 19.3% | 0.135 |
+| Logistic regression | 0.908 | 59.8% | 0.077 |
+| **LightGBM** | **0.922** | **60.9%** | **0.072** |
 
-## Setup
+- **Dollar impact:** if the lender kept only the safest 80% of its approved loans, ranking by LightGBM would leave **$97.1M** of defaulted principal, versus **$242.0M** ranking by the lender's grade, about 60% less. The gap holds at 70% and 90%. (20% held-out validation set, 118,799 loans.)
+- **Risk drivers:** the riskiest borrowers share the same top drivers: unemployed, high debt-to-income ratio, and low credit score.
+- **Risk tiers:** under stated cost assumptions, the low / medium / high tiers have default rates of **3.7% / 15.4% / 67.1%**. The cutoffs move when the assumptions change, but net value stays positive in all nine scenarios tested.
+
+Recall uses the default 0.5 threshold. All dollar figures come from synthetic data, so they show direction rather than a real bank's results.
+
+## Approach
+1. **Data quality audit:** schema, target, missing values, duplicates, value ranges, category consistency, outliers (Tukey 1.5 × IQR).
+2. **Exploratory analysis:** payback rates by category, DTI deciles, correlations, skewness.
+3. **Feature preparation:** log transforms for income and DTI; one-hot encoding for small categories; ordinal encoding for the 30 grades (A1 = 1 … F5 = 30); gender excluded. All preparation is fitted inside a scikit-learn pipeline to avoid leakage.
+4. **Models:** three baselines → logistic regression → LightGBM.
+5. **Evaluation:** stratified 5-fold cross-validation (ROC AUC, recall, Brier score), plus a fixed 20% validation set for the business analysis.
+6. **Business analysis:** defaulted principal at 70 / 80 / 90% of loans kept; borrower-level risk drivers from LightGBM feature contributions; low / medium / high risk tiers with a threshold sensitivity analysis.
+
+## Repository structure
+```
+predicting-loan-payback/
+├── README.md
+├── requirements.txt          Python dependencies (pinned versions)
+├── .gitignore                keeps data files out of the repository
+├── 01_eda.ipynb              data audit and exploratory analysis, with interpretations
+├── 02_modeling.ipynb         baselines, models, business impact, risk drivers, risk tiers
+├── src/
+│   └── eda_audit.py          reproducible audit and cleaning pipeline
+├── data/
+│   └── README.md             where to download the data (data files are not tracked)
+├── reports/                  audit tables, figures, and model results
+└── docs/
+    └── P1_Proposal_Ziyan_Chen.pdf   project proposal (P1)
+```
+
+## How to reproduce
+
+### 1. Set up the environment
 Python 3.11 or later.
 
 ```
-git clone https://github.com/ZiyanChen1/msba265-final-project.git
-cd msba265-final-project
+git clone https://github.com/ZiyanChen1/predicting-loan-payback.git
+cd predicting-loan-payback
 python -m venv venv
-venv\Scripts\activate          # Windows
+venv\Scripts\activate          # Windows (PowerShell)
 source venv/bin/activate       # Mac / Linux
 pip install -r requirements.txt
 ```
 
-## Data (not included in this repository)
-The Kaggle competition rules do not allow sharing the competition data with people outside the competition,
-so **no data files are stored here**. To reproduce the project:
+### 2. Get the data (not included)
+The Kaggle competition rules do not allow sharing the competition data with people outside the competition, so **no data files are stored in this repository**.
 
-1. Sign in to Kaggle and open the competition [Data page](https://www.kaggle.com/competitions/playground-series-s5e11/data).
-2. Click **Join Competition / I Understand and Accept** to accept the rules.
-3. Download `train.csv`, `test.csv`, and `sample_submission.csv` and put them in the `data/` folder:
-   ```
-   data/train.csv
-   data/test.csv
-   data/sample_submission.csv
-   ```
-   (Or, with the Kaggle CLI: `kaggle competitions download -c playground-series-s5e11 -p data` and unzip.)
+1. Sign in to Kaggle and open the competition's [Data page](https://www.kaggle.com/competitions/playground-series-s5e11/data).
+2. Accept the competition rules.
+3. Download `train.csv`, `test.csv`, and `sample_submission.csv` into the `data/` folder.
 
-`data/*.csv` is listed in `.gitignore`, so data files and generated files (cleaned data, submission) are never uploaded.
+Or, with the Kaggle CLI: `kaggle competitions download -c playground-series-s5e11 -p data`, then unzip.
 
-- **One row** = one loan that was already approved, with the borrower's finances, loan terms, and profile.
-- **Target:** `loan_paid_back` (1 = repaid, 0 = not repaid). About 80% of loans were repaid.
-- **Size:** 593,994 training rows and 254,569 test rows; no missing values or duplicates.
-- **Limits:** the data is synthetic (generated from an original loan dataset), so results show direction rather than real-bank dollars. It contains approved loans only; declined applicants are not observed (reject inference).
-
-## How to run (in this order)
-1. `python src/eda_audit.py`: audit and clean the data
-   - writes audit tables and figures to `reports/`
-   - writes `data/train_clean.csv` and `data/test_clean.csv`
-2. `01_eda.ipynb`: exploratory data analysis with interpretations (Run All)
-3. `02_modeling.ipynb`: models, business impact, risk drivers, risk tiers, Kaggle submission (Run All; about 7 minutes)
-
-## Expected outputs
-| Output | Where | Key result |
+### 3. Run, in this order
+| Step | Command or file | What it does |
 |---|---|---|
-| Model comparison | `reports/model_comparison.csv` | ROC AUC: baseline 0.500 · lender's grade 0.655 · scorecard 0.768 · logistic regression 0.908 · LightGBM 0.922 |
-| Business impact | `reports/business_impact.csv`, `.png` | Keeping the safest 80% of approved loans: $97.1M defaulted principal with LightGBM vs. $242.0M with the lender's grade |
-| Risk tiers and sensitivity | `reports/tier_sensitivity.csv` | Default rate 3.7% (low) · 15.4% (medium) · 67.1% (high) |
-| Kaggle submission | `data/submission.csv` | Payback probability for each test `id` |
+| 1 | `python src/eda_audit.py` | Audits and cleans the data; writes audit tables and figures to `reports/` and `train_clean.csv` / `test_clean.csv` to `data/` |
+| 2 | `01_eda.ipynb` (Run All) | Exploratory analysis with interpretations |
+| 3 | `02_modeling.ipynb` (Run All, several minutes) | Baselines, models, business impact, risk drivers, risk tiers, Kaggle submission |
 
-## Project structure
-```
-data/                 put the Kaggle files here (not tracked; see data/README.md)
-docs/                 P1 proposal PDF
-reports/              audit tables, figures, model results
-src/eda_audit.py      reproducible audit and cleaning pipeline
-01_eda.ipynb          exploratory data analysis
-02_modeling.ipynb     models, business impact, risk drivers, risk tiers
-requirements.txt      Python dependencies
-```
+### 4. Expected outputs
+| Output | File | What to check |
+|---|---|---|
+| Model comparison | `reports/model_comparison.csv` | LightGBM ROC AUC ≈ 0.922 |
+| Business impact | `reports/business_impact.csv`, `reports/business_impact.png` | ≈ $97.1M (LightGBM) vs. $242.0M (lender's grade) at 80% kept |
+| Risk tier sensitivity | `reports/tier_sensitivity.csv` | Nine scenarios, all with positive net value |
+| Kaggle submission | `data/submission.csv` (not tracked) | One payback probability per test `id` |
+
+## Data
+- **One row** = one loan that was already approved: the borrower's finances, loan terms, and profile.
+- **Target:** `loan_paid_back` (1 = repaid, 0 = not repaid); 79.9% repaid.
+- **Size:** 593,994 training rows and 254,569 test rows; no missing values or duplicates.
+- **Key fields:** `employment_status`, `debt_to_income_ratio`, `credit_score`, `grade_subgrade` (the lender's grade), `annual_income`, `loan_amount`, `interest_rate`, plus marital status, education, loan purpose, and gender.
+- A full data dictionary is in `reports/data_dictionary.csv`.
 
 ## Key EDA findings
-- 79.9% of loans were repaid, so the classes are imbalanced; ROC AUC is used instead of accuracy.
-- Employment status is the strongest signal: only 7.8% of unemployed borrowers repaid, versus 89.4% of employed.
-- Payback drops sharply in the top two DTI deciles (from about 78% to 49%), so DTI risk is nonlinear.
-- Credit score and loan grade are highly correlated (r = −0.91), so logistic regression keeps only credit score.
-- Outliers were kept: high-DTI outliers are real high-risk borrowers (45% payback vs. 81% for others).
+- Classes are imbalanced (80 / 20), so ROC AUC is used instead of accuracy.
+- Employment status is the strongest signal: 7.8% of unemployed borrowers repaid, versus 89.4% of employed borrowers.
+- Debt-to-income risk is nonlinear: payback falls from about 78% to 49% across the top three DTI deciles.
+- Credit score and grade are highly correlated (r = −0.91), so logistic regression keeps only credit score.
+- Outliers were kept: high-DTI outliers are real high-risk borrowers (45% payback vs. 81% for everyone else).
 
-## Known limitations
-- Synthetic data: dollar amounts are illustrative.
-- Data is not redistributed: reviewers need a Kaggle account to download it.
-- Approved loans only: model explanations are risk drivers, not real decline reasons.
-- Cost assumptions for the risk tiers (loss given default, review cost, review capacity) are stated assumptions, tested with a sensitivity analysis.
+## Limitations
+- **Synthetic data:** the rows were generated from an original loan dataset, so dollar amounts are illustrative.
+- **Approved loans only:** declined applicants are not observed (reject inference). Model explanations are risk drivers, not real decline reasons.
+- **Assumed costs:** the risk tiers use stated assumptions (loss given default, review cost, review capacity), tested with a sensitivity analysis.
+- **Data access:** reviewers need a Kaggle account to download the data.
+
+## Project status
+| Stage | Status |
+|---|---|
+| P1: proposal, data audit, EDA, baseline and first models | ✅ Done |
+| P2: tuning, calibration and fairness checks, saved model with a load-and-test demo, FastAPI + Docker service, draft paper and slides | ⏳ Next |
+| Final delivery | ⏳ |
