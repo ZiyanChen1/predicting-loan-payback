@@ -1,8 +1,8 @@
 column,set,rule_min,rule_max,actual_min,actual_max,violations
 annual_income,train,0,10000000,6002.43,393381.74,0
 annual_income,test,0,10000000,6011.77,380653.94,0
-debt_to_income_ratio,train,0,5,0.011,0.627,0
-debt_to_income_ratio,test,0,5,0.011,0.627,0
+debt_to_income_ratio,train,0,5,0.01,0.63,0
+debt_to_income_ratio,test,0,5,0.01,0.63,0
 credit_score,train,300,850,395.0,849.0,0
 credit_score,test,300,850,395.0,849.0,0
 loan_amount,train,1,10000000,500.09,48959.95,0

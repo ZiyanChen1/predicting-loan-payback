@@ -1,4 +1,4 @@
-column,lower,upper,outlier_pct,payback_rate_outliers,payback_rate_others
+column,lower,upper,outlier_%,payback_rate_outliers,payback_rate_others
 annual_income,-21635.98,110551.7,2.68,0.776,0.799
 debt_to_income_ratio,-0.054,0.282,2.96,0.448,0.81
 credit_score,536.5,828.5,0.99,0.696,0.8
