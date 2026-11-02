@@ -29,7 +29,7 @@ Mean of stratified 5-fold cross-validation on the training data:
 | **LightGBM** | **0.922** | **60.9%** |
 
 - **Dollar impact:** if the lender kept only the safest 80% of its approved loans, ranking by LightGBM would leave **$97.1M** of defaulted principal, versus **$242.0M** ranking by the lender's grade, about 60% less. The gap holds at 70% and 90%. (20% held-out validation set, 118,799 loans.)
-- **Risk drivers:** the riskiest borrowers share the same top drivers: unemployed, high debt-to-income ratio, and low credit score.
+- **Risk drivers:** both models agree on the top three: employment status, debt-to-income ratio, and credit score.
 - **Approve / review / reject:** cutoffs chosen with business costs give default rates of **3.7% / 15.4% / 67.1%**. Net value stays positive in all nine cost scenarios tested.
 
 Recall is at the default 0.5 threshold. The majority baseline is 79.9% accurate but catches no defaults. Dollar figures come from synthetic data: the direction matters more than the exact amount.
@@ -40,7 +40,7 @@ Recall is at the default 0.5 threshold. The majority baseline is 79.9% accurate 
 3. **Prepare:** learn the preparation once, from training rows, and reuse it (ColumnTransformer → Pipeline → cross-validation). Log transforms for income and DTI; one-hot encoding for small categories; ordinal grades (A1 = 1 … F5 = 30); gender excluded.
 4. **Model:** majority baseline, lender's grade, classic scorecard → logistic regression → LightGBM.
 5. **Evaluate:** fit on training data, choose on validation, report on untouched test data. Stratified 5-fold CV for ROC AUC and recall; a fixed 20% validation set for the dollar analysis and cutoffs.
-6. **Decide:** defaulted principal at 70 / 80 / 90% of loans kept; risk drivers from LightGBM feature contributions; approve / review / reject cutoffs chosen with business costs, plus a sensitivity check.
+6. **Decide:** defaulted principal at 70 / 80 / 90% of loans kept; risk drivers from logistic regression coefficients and LightGBM feature importance; approve / review / reject cutoffs chosen with business costs, plus a sensitivity check.
 
 ## Repository structure
 ```
@@ -53,7 +53,7 @@ predicting-loan-payback/
 ├── src/
 │   └── eda_audit.py          reproducible audit and cleaning pipeline
 ├── data/
-│   └── README.md             where to download the data (data files are not tracked)
+│   └── download_data.py      downloads the Kaggle data with your own account (data files are not tracked)
 ├── reports/                  audit tables, figures, and model results
 └── docs/
     └── P1_Proposal_Ziyan_Chen.pdf   project proposal (P1)
@@ -64,27 +64,41 @@ predicting-loan-payback/
 ### 1. Set up the environment
 Python 3.11 or later.
 
+**Windows (PowerShell)**
 ```
 git clone https://github.com/ZiyanChen1/predicting-loan-payback.git
 cd predicting-loan-payback
 python -m venv venv
-venv\Scripts\activate          # Windows (PowerShell)
-source venv/bin/activate       # Mac / Linux
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Get the data (not included)
-The Kaggle competition rules do not allow sharing the competition data with people outside the competition, so **no data files are stored in this repository**.
+**Mac (Terminal)**
+```
+git clone https://github.com/ZiyanChen1/predicting-loan-payback.git
+cd predicting-loan-payback
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-1. Sign in to Kaggle and open the competition's [Data page](https://www.kaggle.com/competitions/playground-series-s5e11/data).
-2. Accept the competition rules.
-3. Download `train.csv`, `test.csv`, and `sample_submission.csv` into the `data/` folder.
+### 2. Download the data (not included)
+The Kaggle competition rules do not allow sharing the competition data, so **no data files are stored in this repository**. Each user downloads them with their own Kaggle account:
 
-Or, with the Kaggle CLI: `kaggle competitions download -c playground-series-s5e11 -p data`, then unzip.
+1. Sign in to Kaggle and accept the competition rules: https://www.kaggle.com/competitions/playground-series-s5e11/rules
+2. Log in to the Kaggle API (one time; opens a browser):
+   ```
+   kaggle auth login
+   ```
+3. Download the files into `data/`:
+   ```
+   python data/download_data.py
+   ```
 
 ### 3. Run, in this order
 | Step | Command or file | What it does |
 |---|---|---|
+| 0 | `python data/download_data.py` | Downloads the Kaggle data into `data/` (see step 2) |
 | 1 | `python src/eda_audit.py` | Audits and cleans the data; writes audit tables and figures to `reports/` and `train_clean.csv` / `test_clean.csv` to `data/` |
 | 2 | `01_eda.ipynb` (Run All) | Exploratory analysis with interpretations |
 | 3 | `02_modeling.ipynb` (Run All, several minutes) | Baselines, models, business impact, risk drivers, risk tiers, Kaggle submission |

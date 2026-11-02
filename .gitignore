@@ -5,3 +5,7 @@ __pycache__/
 # Kaggle competition data may not be redistributed (competition rules)
 data/*.csv
 data/*.zip
+
+# Kaggle credentials: never upload
+kaggle.json
+access_token
