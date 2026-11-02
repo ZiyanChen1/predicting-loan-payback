@@ -13,34 +13,34 @@ Lenders already score borrowers. In this data, every loan carries the lender's o
 | | |
 |---|---|
 | **Stakeholder** | A consumer lender's credit risk team: the credit risk manager and the loan officers who review borderline files |
-| **Decision supported** | Group similar future applicants into low / medium / high risk tiers (approve quickly / officer review / decline) and show what drives each borrower's risk |
-| **Method** | Supervised binary classification: logistic regression and LightGBM, compared with three baselines |
-| **Success measures** | ROC AUC above the lender's grade and a classic scorecard; less defaulted principal at the same share of loans kept; readable borrower-level risk drivers |
+| **Label → action** | `loan_paid_back` (1 = repaid, 0 = not repaid) → route similar future applicants: approve / review / reject |
+| **Method** | Binary classification. Shortlist for a table: logistic regression + a tree ensemble (LightGBM), compared with three baselines |
+| **Success measures** | ROC AUC and recall above every baseline; lower operational cost (less defaulted principal); readable risk drivers |
 
 ## Key results (preliminary)
 Mean of stratified 5-fold cross-validation on the training data:
 
-| Model | ROC AUC | Recall on loans not repaid | Brier score |
-|---|---|---|---|
-| Baseline: always predict "repaid" | 0.500 | 0.0% | 0.201 |
-| Lender's grade only (company baseline) | 0.655 | 1.8% | 0.154 |
-| Classic scorecard: credit score + DTI | 0.768 | 19.3% | 0.135 |
-| Logistic regression | 0.908 | 59.8% | 0.077 |
-| **LightGBM** | **0.922** | **60.9%** | **0.072** |
+| Model | ROC AUC | Recall on loans not repaid |
+|---|---|---|
+| Majority baseline: always predict "repaid" | 0.500 | 0.0% |
+| Lender's grade only (company baseline) | 0.655 | 1.8% |
+| Classic scorecard: credit score + DTI | 0.768 | 19.3% |
+| Logistic regression | 0.908 | 59.8% |
+| **LightGBM** | **0.922** | **60.9%** |
 
 - **Dollar impact:** if the lender kept only the safest 80% of its approved loans, ranking by LightGBM would leave **$97.1M** of defaulted principal, versus **$242.0M** ranking by the lender's grade, about 60% less. The gap holds at 70% and 90%. (20% held-out validation set, 118,799 loans.)
 - **Risk drivers:** the riskiest borrowers share the same top drivers: unemployed, high debt-to-income ratio, and low credit score.
-- **Risk tiers:** under stated cost assumptions, the low / medium / high tiers have default rates of **3.7% / 15.4% / 67.1%**. The cutoffs move when the assumptions change, but net value stays positive in all nine scenarios tested.
+- **Approve / review / reject:** cutoffs chosen with business costs give default rates of **3.7% / 15.4% / 67.1%**. Net value stays positive in all nine cost scenarios tested.
 
-Recall uses the default 0.5 threshold. All dollar figures come from synthetic data, so they show direction rather than a real bank's results.
+Recall is at the default 0.5 threshold. The majority baseline is 79.9% accurate but catches no defaults. Dollar figures come from synthetic data: the direction matters more than the exact amount.
 
 ## Approach
-1. **Data quality audit:** schema, target, missing values, duplicates, value ranges, category consistency, outliers (Tukey 1.5 × IQR).
-2. **Exploratory analysis:** payback rates by category, DTI deciles, correlations, skewness.
-3. **Feature preparation:** log transforms for income and DTI; one-hot encoding for small categories; ordinal encoding for the 30 grades (A1 = 1 … F5 = 30); gender excluded. All preparation is fitted inside a scikit-learn pipeline to avoid leakage.
-4. **Models:** three baselines → logistic regression → LightGBM.
-5. **Evaluation:** stratified 5-fold cross-validation (ROC AUC, recall, Brier score), plus a fixed 20% validation set for the business analysis.
-6. **Business analysis:** defaulted principal at 70 / 80 / 90% of loans kept; borrower-level risk drivers from LightGBM feature contributions; low / medium / high risk tiers with a threshold sensitivity analysis.
+1. **Audit:** schema, target, missing values, duplicates, ranges, categories, outliers (Tukey 1.5 × IQR).
+2. **Explore:** payback rates by category and DTI decile, correlations, skewness.
+3. **Prepare:** learn the preparation once, from training rows, and reuse it (ColumnTransformer → Pipeline → cross-validation). Log transforms for income and DTI; one-hot encoding for small categories; ordinal grades (A1 = 1 … F5 = 30); gender excluded.
+4. **Model:** majority baseline, lender's grade, classic scorecard → logistic regression → LightGBM.
+5. **Evaluate:** fit on training data, choose on validation, report on untouched test data. Stratified 5-fold CV for ROC AUC and recall; a fixed 20% validation set for the dollar analysis and cutoffs.
+6. **Decide:** defaulted principal at 70 / 80 / 90% of loans kept; risk drivers from LightGBM feature contributions; approve / review / reject cutoffs chosen with business costs, plus a sensitivity check.
 
 ## Repository structure
 ```
@@ -121,5 +121,5 @@ Or, with the Kaggle CLI: `kaggle competitions download -c playground-series-s5e1
 | Stage | Status |
 |---|---|
 | P1: proposal, data audit, EDA, baseline and first models | ✅ Done |
-| P2: tuning, calibration and fairness checks, saved model with a load-and-test demo, FastAPI + Docker service, draft paper and slides | ⏳ Next |
+| P2: confusion matrix, final cutoffs, calibration and fairness checks, saved model with a load-and-test demo, FastAPI + Docker service, draft paper and slides | ⏳ Next |
 | Final delivery | ⏳ |
