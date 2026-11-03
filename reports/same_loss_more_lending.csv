@@ -1,0 +1,3 @@
+ranked_by,loans_approved,share_approved_%,lending_$M,defaulted_principal_$M,interest_1yr_$M
+Lender's grade,95039,80.0,1426.7,242.0,141.3
+LightGBM,110919,93.4,1663.2,242.0,173.6

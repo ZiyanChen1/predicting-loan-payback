@@ -1,15 +1,3 @@
-"""
-Data quality audit and cleaning pipeline for Predicting Loan Payback (Kaggle S5E11).
-
-Mirrors the steps in 01_eda.ipynb (Steps 1-11 and 13):
-  1. Audit: schema, target, missing values, duplicates, value ranges, categories, outliers
-  2. Transform: log income, log DTI, ordinal grade
-  3. Save: audit tables, figures, and cleaned train/test files
-
-Usage:
-    python src/eda_audit.py
-    python src/eda_audit.py --data-dir data --out-dir reports
-"""
 from __future__ import annotations
 
 import argparse
@@ -41,7 +29,6 @@ GRADE_ORDER = [f"{letter}{num}" for letter in "ABCDEF" for num in range(1, 6)]
 GRADE_MAP = {grade: i + 1 for i, grade in enumerate(GRADE_ORDER)}
 
 
-# ---------------------------------------------------------------- load
 def load_data(data_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     train = pd.read_csv(data_dir / "train.csv")
     test = pd.read_csv(data_dir / "test.csv")
@@ -63,7 +50,6 @@ def fix_target(train: pd.DataFrame) -> None:
     train[TARGET] = train[TARGET].astype(int)
 
 
-# ---------------------------------------------------------------- checks
 def check_missing(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame({
         "train_missing": train.isna().sum(),
@@ -147,9 +133,7 @@ def check_outliers(train: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------- transform
 def transform(df: pd.DataFrame) -> pd.DataFrame:
-    """Fixed-rule transforms only (nothing learned from data), so safe for train and test."""
     df = df.copy()
     df["log_annual_income"] = np.log1p(df["annual_income"])
     df["log_debt_to_income_ratio"] = np.log(df["debt_to_income_ratio"])
@@ -173,7 +157,6 @@ def skewness_table(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
     })
 
 
-# ---------------------------------------------------------------- figures
 def save_boxplots(train: pd.DataFrame, path: Path) -> None:
     fig, axes = plt.subplots(1, len(NUM_COLS), figsize=(20, 4))
     for ax, col in zip(axes, NUM_COLS):
@@ -217,10 +200,8 @@ def save_correlation(clean: pd.DataFrame, path: Path) -> pd.DataFrame:
 
 
 def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
-    """The six charts from Step 11 of 01_eda.ipynb."""
     overall = clean[TARGET].mean() * 100
 
-    # 1. target distribution
     counts = clean[TARGET].value_counts().sort_index()
     fig = plt.figure(figsize=(5, 4))
     plt.bar(["Not repaid (0)", "Repaid (1)"], counts.values, color=["#F58518", "#4C78A8"])
@@ -230,7 +211,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     fig.savefig(out_dir / "target_distribution.png", dpi=120)
     plt.close(fig)
 
-    # 2. payback rate by category
     fig, axes = plt.subplots(2, 3, figsize=(16, 10))
     for ax, col in zip(axes.flat, CAT_COLS[:-1]):
         rates = clean.groupby(col)[TARGET].mean().sort_values(ascending=False) * 100
@@ -246,7 +226,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     fig.savefig(out_dir / "payback_by_category.png", dpi=120)
     plt.close(fig)
 
-    # 3. numeric features by target
     fig, axes = plt.subplots(1, 3, figsize=(16, 4))
     for ax, col in zip(axes, ["log_debt_to_income_ratio", "credit_score", "interest_rate"]):
         sns.kdeplot(data=clean, x=col, hue=TARGET, common_norm=False, fill=True, ax=ax)
@@ -255,7 +234,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     fig.savefig(out_dir / "numeric_by_target.png", dpi=120)
     plt.close(fig)
 
-    # 4. payback rate by DTI decile
     dti_band = pd.qcut(clean["debt_to_income_ratio"], 10)
     band_rate = clean.groupby(dti_band, observed=True)[TARGET].mean() * 100
     fig = plt.figure(figsize=(10, 4))
@@ -268,7 +246,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     fig.savefig(out_dir / "payback_by_dti_decile.png", dpi=120)
     plt.close(fig)
 
-    # 5. payback rate by loan grade
     grade_rate = clean.groupby("grade_subgrade")[TARGET].mean().reindex(GRADE_ORDER) * 100
     fig = plt.figure(figsize=(12, 4))
     plt.plot(grade_rate.index, grade_rate.values, marker="o")
@@ -279,7 +256,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     fig.savefig(out_dir / "payback_by_grade.png", dpi=120)
     plt.close(fig)
 
-    # 6. credit score vs interest rate
     sample = clean.sample(5000, random_state=42)
     fig = plt.figure(figsize=(7, 5))
     sns.scatterplot(data=sample, x="credit_score", y="interest_rate", hue=TARGET, alpha=0.5, s=15)
@@ -289,7 +265,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     plt.close(fig)
 
 
-# ---------------------------------------------------------------- summary
 def print_summary(train, test, missing, dups, bounds, cats, outliers, skew, corr) -> None:
     repaid = train[TARGET].mean() * 100
     high_corr = [
@@ -322,7 +297,6 @@ def print_summary(train, test, missing, dups, bounds, cats, outliers, skew, corr
     print("=" * 60)
 
 
-# ---------------------------------------------------------------- main
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the data quality audit and save cleaned data.")
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
@@ -334,7 +308,6 @@ def main() -> None:
     args = parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. load and audit
     train, test = load_data(args.data_dir)
     check_schema(train, test)
     fix_target(train)
@@ -346,12 +319,10 @@ def main() -> None:
     payback = category_payback(train)
     outliers = check_outliers(train)
 
-    # 2. transform (same fixed rules for train and test)
     train_clean = transform(train)
     test_clean = transform(test)
     skew = skewness_table(train, train_clean)
 
-    # 3. save tables, figures, and cleaned data
     missing.to_csv(args.out_dir / "audit_missing.csv")
     bounds.to_csv(args.out_dir / "audit_boundaries.csv", index=False)
     cats.to_csv(args.out_dir / "audit_categories.csv", index=False)
