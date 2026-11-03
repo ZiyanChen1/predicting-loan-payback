@@ -1,10 +1,12 @@
 # Predicting Loan Payback
 
+
 Data: Kaggle Playground Series S5E11, [Predicting Loan Payback](https://www.kaggle.com/competitions/playground-series-s5e11)
 
 ## Overview
 This project asks whether a machine learning model can rank borrowers by default risk better than the lender's own grade, so a lender can approve more loans without higher default losses. It compares three baselines (always "repaid", the lender's grade, and a credit score + debt-to-income scorecard) with logistic regression and LightGBM. LightGBM reaches a ROC AUC of 0.922, versus 0.655 for the lender's grade, and at the same default losses it approves 93.4% of loans instead of 80%. The full proposal, EDA and results are in [`docs/P1_Proposal_Ziyan_Chen.pdf`](docs/P1_Proposal_Ziyan_Chen.pdf).
 
+**To read the analysis without installing anything,** open [`01_eda.ipynb`](01_eda.ipynb) and [`02_modeling.ipynb`](02_modeling.ipynb) on this page; GitHub shows all saved outputs. The steps below are only for rerunning the project.
 
 ## Repository structure
 ```
@@ -88,7 +90,7 @@ Expected results (the notebook should finish without errors):
 - Skewness before and after the log transform
 - Correlation heatmap
 - Charts: target split, payback by employment status, by debt-to-income decile and by grade
-- Business data dictionary, and the cleaned data saved to `data/`
+- Business data dictionary (`reports/data_dictionary.csv`) and a check of the cleaned columns
 
 #### 3.3 Modeling notebook: `02_modeling.ipynb`
 It takes several minutes.
