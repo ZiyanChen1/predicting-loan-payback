@@ -9,3 +9,6 @@ data/*.zip
 # Kaggle credentials: never upload
 kaggle.json
 access_token
+
+# Course submission documents (submitted on Canvas, not in the repository)
+docs/

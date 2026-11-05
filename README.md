@@ -1,10 +1,10 @@
 # Predicting Loan Payback
 
-
+Ziyan Chen · MSBA 265 Applied Analytics, University of the Pacific · Final project
 Data: Kaggle Playground Series S5E11, [Predicting Loan Payback](https://www.kaggle.com/competitions/playground-series-s5e11)
 
 ## Overview
-This project asks whether a machine learning model can rank borrowers by default risk better than the lender's own grade, so a lender can approve more loans without higher default losses. It compares three baselines (always "repaid", the lender's grade, and a credit score + debt-to-income scorecard) with logistic regression and LightGBM. LightGBM reaches a ROC AUC of 0.922, versus 0.655 for the lender's grade, and at the same default losses it approves 93.4% of loans instead of 80%. The full proposal, EDA and results are in [`docs/P1_Proposal_Ziyan_Chen.pdf`](docs/P1_Proposal_Ziyan_Chen.pdf).
+This project asks whether a machine learning model can rank borrowers by default risk better than the lender's own grade, so a lender can approve more loans without higher default losses. It compares three baselines (always "repaid", the lender's grade, and a credit score + debt-to-income scorecard) with logistic regression and LightGBM. LightGBM reaches a ROC AUC of 0.922, versus 0.655 for the lender's grade, and at the same default losses it approves 93.4% of loans instead of 80%.
 
 **To read the analysis without installing anything,** open [`01_eda.ipynb`](01_eda.ipynb) and [`02_modeling.ipynb`](02_modeling.ipynb) on this page; GitHub shows all saved outputs. The steps below are only for rerunning the project.
 
@@ -12,17 +12,15 @@ This project asks whether a machine learning model can rank borrowers by default
 ```
 predicting-loan-payback/
 ├── README.md
-├── requirements.txt          
-├── .gitignore                
+├── requirements.txt          Python dependencies (pinned versions)
+├── .gitignore                keeps data files out of the repository
 ├── 01_eda.ipynb              data audit and exploratory analysis, with interpretations
 ├── 02_modeling.ipynb         baselines, models, business impact, risk drivers, risk tiers
 ├── src/
 │   └── eda_audit.py          reproducible audit and cleaning pipeline
 ├── data/
 │   └── download_data.py      downloads the Kaggle data with your own account (data files are not tracked)
-├── reports/                  audit tables, figures, and model results
-└── docs/
-    └── P1_Proposal_Ziyan_Chen.pdf   
+└── reports/                  audit tables, figures, and model results
 ```
 
 ## How to reproduce
