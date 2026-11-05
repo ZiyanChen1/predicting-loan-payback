@@ -12,8 +12,8 @@ This project asks whether a machine learning model can rank borrowers by default
 ```
 predicting-loan-payback/
 ├── README.md
-├── requirements.txt          Python dependencies (pinned versions)
-├── .gitignore                keeps data files out of the repository
+├── requirements.txt          
+├── .gitignore               
 ├── 01_eda.ipynb              data audit and exploratory analysis, with interpretations
 ├── 02_modeling.ipynb         baselines, models, business impact, risk drivers, risk tiers
 ├── src/
