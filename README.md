@@ -127,14 +127,11 @@ Expected results:
 - `train.py` prints `Test ROC AUC: 0.9207`, the same as the notebook.
 - `test_model.py` prints one line per applicant (A and E approve, B review, C and D decline) and ends with `All checks passed.`
 
-**Use the saved model in your own code:**
-```python
-import joblib, pandas as pd
-model = joblib.load("artifacts/model.joblib")
-applicants = pd.read_csv("examples/example_applicants.csv")
-model.predict_proba(applicants)[:, 1]   # probability of payback
-```
-Input: the 10 columns listed in `artifacts/model_metadata.json` (raw values, e.g. `grade_subgrade = "C3"`). Output: probability that the loan is paid back. Tiers: decline below 0.77, review 0.77 – 0.89, approve at or above 0.89.
+What the saved model expects:
+1. **Input:** the 10 columns listed in `artifacts/model_metadata.json`, as raw values (e.g. `grade_subgrade = "C3"`).
+2. **Output:** the probability that the loan is paid back.
+3. **Tiers:** decline below 0.77; review 0.77–0.89; approve at 0.89 or above.
+
 
 ### 4. View or rerun the notebooks (optional)
 Step 3 already saved every table and chart inside the notebooks. Use this step only to look at them, or to rerun cells one at a time.
