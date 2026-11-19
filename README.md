@@ -1,6 +1,5 @@
 # Predicting Loan Payback
 
-Ziyan Chen · MSBA 265 Applied Analytics, University of the Pacific · Final project
 Data: Kaggle Playground Series S5E11, [Predicting Loan Payback](https://www.kaggle.com/competitions/playground-series-s5e11)
 
 ## Overview
