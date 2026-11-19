@@ -9,7 +9,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 
 TARGET = "loan_paid_back"
 ID_COL = "id"
@@ -96,21 +95,6 @@ def check_categories(train: pd.DataFrame, test: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def category_payback(train: pd.DataFrame) -> pd.DataFrame:
-    tables = []
-    for col in CAT_COLS:
-        counts = train[col].value_counts()
-        table = pd.DataFrame({
-            "feature": col,
-            "level": counts.index,
-            "count": counts.values,
-            "share_%": (counts / len(train) * 100).round(2).values,
-            "payback_rate_%": (train.groupby(col)[TARGET].mean() * 100).round(1).loc[counts.index].values,
-        })
-        tables.append(table)
-    return pd.concat(tables, ignore_index=True)
-
-
 def tukey_bounds(s: pd.Series, k: float = 1.5) -> tuple[float, float]:
     q1, q3 = s.quantile([0.25, 0.75])
     iqr = q3 - q1
@@ -157,28 +141,7 @@ def skewness_table(before: pd.DataFrame, after: pd.DataFrame) -> pd.DataFrame:
     })
 
 
-def save_boxplots(train: pd.DataFrame, path: Path) -> None:
-    fig, axes = plt.subplots(1, len(NUM_COLS), figsize=(20, 4))
-    for ax, col in zip(axes, NUM_COLS):
-        sns.boxplot(y=train[col], ax=ax, color="#8fb3d9")
-        ax.set_title(col)
-    fig.tight_layout()
-    fig.savefig(path, dpi=120)
-    plt.close(fig)
-
-
-def save_skew_plots(clean: pd.DataFrame, path: Path) -> None:
-    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-    sns.histplot(clean["annual_income"], kde=True, ax=axes[0, 0])
-    sns.histplot(clean["log_annual_income"], kde=True, ax=axes[0, 1])
-    sns.histplot(clean["debt_to_income_ratio"], kde=True, ax=axes[1, 0])
-    sns.histplot(clean["log_debt_to_income_ratio"], kde=True, ax=axes[1, 1])
-    fig.tight_layout()
-    fig.savefig(path, dpi=120)
-    plt.close(fig)
-
-
-def save_correlation(clean: pd.DataFrame, path: Path) -> pd.DataFrame:
+def correlation(clean: pd.DataFrame) -> pd.DataFrame:
     corr_cols = [
         "log_annual_income",
         "log_debt_to_income_ratio",
@@ -188,28 +151,11 @@ def save_correlation(clean: pd.DataFrame, path: Path) -> pd.DataFrame:
         "grade_ordinal",
         TARGET,
     ]
-    corr = clean[corr_cols].corr().round(2)
-
-    fig = plt.figure(figsize=(9, 7))
-    sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1, square=True)
-    plt.title("Correlation Heatmap (after transformation)")
-    fig.tight_layout()
-    fig.savefig(path, dpi=120)
-    plt.close(fig)
-    return corr
+    return clean[corr_cols].corr().round(2)
 
 
 def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     overall = clean[TARGET].mean() * 100
-
-    counts = clean[TARGET].value_counts().sort_index()
-    fig = plt.figure(figsize=(5, 4))
-    plt.bar(["Not repaid (0)", "Repaid (1)"], counts.values, color=["#F58518", "#4C78A8"])
-    plt.title("Target distribution")
-    plt.ylabel("Number of loans")
-    fig.tight_layout()
-    fig.savefig(out_dir / "target_distribution.png", dpi=120)
-    plt.close(fig)
 
     fig, axes = plt.subplots(2, 3, figsize=(16, 10))
     for ax, col in zip(axes.flat, CAT_COLS[:-1]):
@@ -226,14 +172,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     fig.savefig(out_dir / "payback_by_category.png", dpi=120)
     plt.close(fig)
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4))
-    for ax, col in zip(axes, ["log_debt_to_income_ratio", "credit_score", "interest_rate"]):
-        sns.kdeplot(data=clean, x=col, hue=TARGET, common_norm=False, fill=True, ax=ax)
-        ax.set_title(col)
-    fig.tight_layout()
-    fig.savefig(out_dir / "numeric_by_target.png", dpi=120)
-    plt.close(fig)
-
     dti_band = pd.qcut(clean["debt_to_income_ratio"], 10)
     band_rate = clean.groupby(dti_band, observed=True)[TARGET].mean() * 100
     fig = plt.figure(figsize=(10, 4))
@@ -244,24 +182,6 @@ def save_visualizations(clean: pd.DataFrame, out_dir: Path) -> None:
     plt.ylabel("Payback rate (%)")
     fig.tight_layout()
     fig.savefig(out_dir / "payback_by_dti_decile.png", dpi=120)
-    plt.close(fig)
-
-    grade_rate = clean.groupby("grade_subgrade")[TARGET].mean().reindex(GRADE_ORDER) * 100
-    fig = plt.figure(figsize=(12, 4))
-    plt.plot(grade_rate.index, grade_rate.values, marker="o")
-    plt.title("Payback rate by loan grade (A1 = best, F5 = worst)")
-    plt.ylabel("Payback rate (%)")
-    plt.xticks(rotation=90)
-    fig.tight_layout()
-    fig.savefig(out_dir / "payback_by_grade.png", dpi=120)
-    plt.close(fig)
-
-    sample = clean.sample(5000, random_state=42)
-    fig = plt.figure(figsize=(7, 5))
-    sns.scatterplot(data=sample, x="credit_score", y="interest_rate", hue=TARGET, alpha=0.5, s=15)
-    plt.title("Credit score vs interest rate (5,000-loan sample)")
-    fig.tight_layout()
-    fig.savefig(out_dir / "scatter_credit_vs_rate.png", dpi=120)
     plt.close(fig)
 
 
@@ -316,30 +236,20 @@ def main() -> None:
     dups = check_duplicates(train)
     bounds = check_boundaries(train, test)
     cats = check_categories(train, test)
-    payback = category_payback(train)
     outliers = check_outliers(train)
 
     train_clean = transform(train)
     test_clean = transform(test)
     skew = skewness_table(train, train_clean)
 
-    missing.to_csv(args.out_dir / "audit_missing.csv")
-    bounds.to_csv(args.out_dir / "audit_boundaries.csv", index=False)
-    cats.to_csv(args.out_dir / "audit_categories.csv", index=False)
-    payback.to_csv(args.out_dir / "category_payback.csv", index=False)
-    outliers.to_csv(args.out_dir / "audit_outliers.csv", index=False)
-    skew.to_csv(args.out_dir / "skewness.csv", index=False)
-
-    save_boxplots(train, args.out_dir / "boxplots.png")
-    save_skew_plots(train_clean, args.out_dir / "skewness_before_after.png")
-    corr = save_correlation(train_clean, args.out_dir / "correlation_heatmap.png")
+    corr = correlation(train_clean)
     save_visualizations(train_clean, args.out_dir)
 
     train_clean.to_csv(args.data_dir / "train_clean.csv", index=False)
     test_clean.to_csv(args.data_dir / "test_clean.csv", index=False)
 
     print_summary(train, test, missing, dups, bounds, cats, outliers, skew, corr)
-    print(f"Reports saved to:      {args.out_dir.resolve()}")
+    print(f"Charts saved to:       {args.out_dir.resolve()}")
     print(f"Cleaned data saved to: {args.data_dir.resolve()}  "
           f"(train {train_clean.shape}, test {test_clean.shape})")
 

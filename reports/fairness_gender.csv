@@ -1,0 +1,4 @@
+gender,loans,actual_repaid_%,avg_predicted_payback_%,roc_auc,recall_not_repaid_%,flagged_not_repaid_%
+Female,60946,80.2,80.0,0.9221,61.0,13.6
+Male,57114,79.6,79.6,0.9197,60.7,13.9
+Other,739,78.1,80.3,0.8907,51.9,12.9

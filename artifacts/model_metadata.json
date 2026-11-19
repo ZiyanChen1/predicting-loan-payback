@@ -1,0 +1,36 @@
+{
+  "model": "LightGBM in a scikit-learn Pipeline (encoding + model)",
+  "trained_on": "356,396 loans (60% training set, random_state=42)",
+  "input_columns": [
+    "annual_income",
+    "debt_to_income_ratio",
+    "credit_score",
+    "loan_amount",
+    "interest_rate",
+    "grade_subgrade",
+    "marital_status",
+    "education_level",
+    "employment_status",
+    "loan_purpose"
+  ],
+  "output": "predict_proba(...)[:, 1] = probability that the loan is paid back",
+  "tier_cutoffs": {
+    "decline_below": 0.77,
+    "approve_at_or_above": 0.89
+  },
+  "test_roc_auc": 0.9207,
+  "library_versions": {
+    "scikit-learn": "1.9.1",
+    "lightgbm": "4.7.0",
+    "pandas": "3.0.6",
+    "numpy": "2.5.4",
+    "joblib": "1.6.0"
+  },
+  "reference_predictions": {
+    "A": 0.989453,
+    "B": 0.824736,
+    "C": 0.442984,
+    "D": 0.001465,
+    "E": 0.997974
+  }
+}

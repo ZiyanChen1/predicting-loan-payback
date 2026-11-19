@@ -4,7 +4,7 @@ Ziyan Chen · MSBA 265 Applied Analytics, University of the Pacific · Final pro
 Data: Kaggle Playground Series S5E11, [Predicting Loan Payback](https://www.kaggle.com/competitions/playground-series-s5e11)
 
 ## Overview
-This project asks whether a machine learning model can rank borrowers by default risk better than the lender's own grade, so a lender can approve more loans without higher default losses. It compares three baselines (always "repaid", the lender's grade, and a credit score + debt-to-income scorecard) with logistic regression and LightGBM. LightGBM reaches a ROC AUC of 0.922, versus 0.655 for the lender's grade, and at the same default losses it approves 93.4% of loans instead of 80%.
+This project asks whether a machine learning model can rank borrowers by default risk better than the lender's own grade, so a lender can approve more loans without higher default losses. It compares three baselines (always "repaid", the lender's grade, and a credit score + debt-to-income scorecard) with logistic regression and LightGBM. On a held-out test set, LightGBM reaches a ROC AUC of 0.921, versus 0.658 for the lender's grade, and at the same default losses it approves 93.4% of loans instead of 80%.
 
 **To read the analysis without installing anything,** open [`01_eda.ipynb`](01_eda.ipynb) and [`02_modeling.ipynb`](02_modeling.ipynb) on this page; GitHub shows all saved outputs. The steps below are only for rerunning the project.
 
@@ -12,15 +12,23 @@ This project asks whether a machine learning model can rank borrowers by default
 ```
 predicting-loan-payback/
 ├── README.md
-├── requirements.txt          Python dependencies (pinned versions)
-├── .gitignore                keeps data files out of the repository
+├── requirements.txt          
+├── .gitignore               
 ├── 01_eda.ipynb              data audit and exploratory analysis, with interpretations
-├── 02_modeling.ipynb         baselines, models, business impact, risk drivers, risk tiers
+├── 02_modeling.ipynb         60/20/20 split, baselines, models, test-set checks, business impact, risk tiers
 ├── src/
-│   └── eda_audit.py          reproducible audit and cleaning pipeline
+│   ├── eda_audit.py          reproducible audit and cleaning pipeline
+│   └── train.py              trains the final model and saves it to artifacts/
+├── tests/
+│   └── test_model.py         reloads the saved model and checks its predictions
+├── artifacts/
+│   ├── model.joblib          saved model: encoding + LightGBM in one pipeline
+│   └── model_metadata.json   input columns, output meaning, tier cutoffs, versions, reference predictions
+├── examples/
+│   └── example_applicants.csv  five invented applicants for testing (not Kaggle data)
 ├── data/
 │   └── download_data.py      downloads the Kaggle data with your own account (data files are not tracked)
-└── reports/                  audit tables, figures, and model results
+└── reports/                  figures and result tables used in the paper and slides
 ```
 
 ## How to reproduce
@@ -73,7 +81,7 @@ python src/eda_audit.py
 Expected results:
 - A printed audit summary: 593,994 training rows and 254,569 test rows; 0 missing values, duplicates, boundary violations and category issues.
 - Outlier and skewness tables, and one highly correlated pair (credit score vs. grade, r = −0.91).
-- Audit tables and charts in `reports/`, and `train_clean.csv` / `test_clean.csv` in `data/`.
+- Two EDA charts in `reports/` (payback by DTI decile and by category), and `train_clean.csv` / `test_clean.csv` in `data/`.
 
 #### 3.2 EDA notebook: `01_eda.ipynb`
 ```
@@ -99,11 +107,34 @@ Expected results:
 
 | Output | File | What to check |
 |---|---|---|
-| Model comparison | `reports/model_comparison.csv` | LightGBM ROC AUC ≈ 0.922 |
+| Model results (5-fold CV and test set) | `reports/test_results.csv`, `reports/roc_curve_test.png` | LightGBM test ROC AUC ≈ 0.921 vs. 0.658 (lender's grade) |
+| Risk drivers | `reports/lgbm_feature_importance.png` | Top three: employment status, debt-to-income, credit score |
+| Confusion matrix and calibration | `reports/confusion_matrix_test.png`, `reports/calibration_test.png` | Recall (not repaid) 60.8%; probabilities within 1 point of actual payback |
+| Fairness by gender | `reports/fairness_gender.csv` | Female vs. male ROC AUC 0.922 vs. 0.920 |
+| Business impact | `reports/business_impact.png` | ≈ $97.2M (LightGBM) vs. $242.0M (lender's grade) at 80% kept |
 | Same losses, more lending | `reports/same_loss_more_lending.csv` | LightGBM approves 93.4% vs. 80.0% at $242.0M defaulted principal |
-| Business impact | `reports/business_impact.csv`, `reports/business_impact.png` | ≈ $97.1M (LightGBM) vs. $242.0M (lender's grade) at 80% kept |
-| Risk tier sensitivity | `reports/tier_sensitivity.csv` | Nine scenarios, all with positive net value |
+| Risk tiers | `reports/risk_tiers.csv`, `reports/tier_sensitivity.csv` | Default rates 3.7% / 15.3% / 66.8% on the test set; all nine scenarios positive |
 | Kaggle submission | `data/submission.csv` (not tracked) | One payback probability per test `id` |
+
+#### 3.4 Saved model: `src/train.py` and `tests/test_model.py`
+```
+python src/train.py
+python tests/test_model.py
+```
+`train.py` trains the final LightGBM model on the same 60% training set as the notebook and saves it to `artifacts/model.joblib` (about 10 seconds). `test_model.py` reloads that file in a fresh run and scores the five invented applicants in `examples/example_applicants.csv`.
+
+Expected results:
+- `train.py` prints `Test ROC AUC: 0.9207`, the same as the notebook.
+- `test_model.py` prints one line per applicant (A and E approve, B review, C and D decline) and ends with `All checks passed.`
+
+**Use the saved model in your own code:**
+```python
+import joblib, pandas as pd
+model = joblib.load("artifacts/model.joblib")
+applicants = pd.read_csv("examples/example_applicants.csv")
+model.predict_proba(applicants)[:, 1]   # probability of payback
+```
+Input: the 10 columns listed in `artifacts/model_metadata.json` (raw values, e.g. `grade_subgrade = "C3"`). Output: probability that the loan is paid back. Tiers: decline below 0.77, review 0.77 – 0.89, approve at or above 0.89.
 
 ### 4. View or rerun the notebooks (optional)
 Step 3 already saved every table and chart inside the notebooks. Use this step only to look at them, or to rerun cells one at a time.

@@ -1,0 +1,6 @@
+applicant,annual_income,debt_to_income_ratio,credit_score,loan_amount,interest_rate,grade_subgrade,marital_status,education_level,employment_status,loan_purpose
+A,72000,0.08,740,12000,10.5,B2,Married,Master's,Employed,Home
+B,45000,0.12,680,15000,12.4,C3,Single,Bachelor's,Employed,Debt consolidation
+C,38000,0.27,640,20000,13.9,D1,Single,High School,Employed,Car
+D,26000,0.35,590,18000,14.8,D4,Divorced,High School,Unemployed,Debt consolidation
+E,52000,0.10,700,8000,11.9,C1,Widowed,Other,Retired,Medical
